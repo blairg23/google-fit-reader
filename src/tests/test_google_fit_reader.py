@@ -1,8 +1,9 @@
-import faker
 from unittest import TestCase, mock
 from unittest.mock import patch
-import google_fit_reader
 
+import faker
+
+import google_fit_reader
 
 module_under_test = "google_fit_reader"
 

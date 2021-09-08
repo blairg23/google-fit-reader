@@ -2,6 +2,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/linux,windows,macos,visualstudiocode,pycharm,python,sublimetext
 # Edit at https://www.toptal.com/developers/gitignore?templates=linux,windows,macos,visualstudiocode,pycharm,python,sublimetext
 
+# Custom
+data
+
 ### Linux ###
 *~
 

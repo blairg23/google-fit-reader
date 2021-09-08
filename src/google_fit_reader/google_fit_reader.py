@@ -1,8 +1,20 @@
 import argparse
+import sys
+import os
+import glob
+import xml.etree.ElementTree as ET
+import re
 
 
 def main():
     args = parse_args(sys.argv[1:])
+
+    google_fit_reader = GoogleFitReader(
+        directory=args.directory,
+        file_type=args.file_type,
+        output_filename=args.output_filename,
+    )
+    google_fit_reader.parse()
 
 
 def parse_args(args):
@@ -40,8 +52,54 @@ def parse_args(args):
 class GoogleFitReader:
     def __init__(self, directory, file_type, output_filename):
         self._directory = directory
-        self._file_type = (file_type,)
+        self._file_type = file_type
+        self._file_regex = "*." + file_type
         self._output_filename = output_filename
 
-    def _parse(self):
+    def parse(self):
+        if self._file_type.lower() == 'json':
+            self._parse_json()
+        elif self._file_type.lower() == 'tcx':
+            self._parse_xml()
+
+    def _parse_json(self):
         pass
+    
+    def _parse_xml(self):
+        # for filename in os.listdir(self._directory):
+        #     print('filename: ', filename)
+
+        glob_path = os.path.join(self._directory, self._file_regex)
+        print(glob_path)
+        for filepath in glob.iglob(glob_path): 
+            print("filepath: ", filepath)
+            tree = ET.parse(filepath)
+            # print('tree: ', tree)
+            root = tree.getroot()
+            # print('root: ', root)
+            # print('dir(root): ', dir(root))
+            # print('root.attrib: ', root.attrib)
+            # print('root.items: ', root.items())
+            # print('root.keys: ', root.keys())
+            # print('root.tag: ', root.tag)
+            # print('root.namespace: ', self._get_namespace(element=root))
+            namespace = self._get_namespace(element=root)
+
+            # print(ET.dump(root))
+            for activities in root.iter(namespace + 'Activities'):
+                for activity in activities.iter(namespace + 'Activity'):
+                    timestamp = activity.find(namespace + 'Id')
+                    lap = activity.find(namespace + 'Lap')
+                    distance_meters = float(lap.find(namespace + 'DistanceMeters').text)
+                    distance_miles = distance_meters / 1609.0
+                    total_time_seconds = float(lap.find(namespace + 'TotalTimeSeconds').text)
+                    total_time_minutes = total_time_seconds / 60.0
+                    print('timestamp: ', timestamp)
+                    print('distance in miles: ', distance_miles)
+                    print('total time in minutes: ', total_time_minutes)
+                    print('-----')
+        
+
+    def _get_namespace(self, element):
+        m = re.match(r'\{.*\}', element.tag)
+        return m.group(0) if m else ''

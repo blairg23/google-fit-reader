@@ -1,9 +1,10 @@
 import argparse
-import sys
-import os
 import glob
-import xml.etree.ElementTree as ET
+import json
+import os
 import re
+import sys
+import xml.etree.ElementTree as ET
 
 
 def main():
@@ -54,6 +55,7 @@ class GoogleFitReader:
         self._directory = directory
         self._file_type = file_type
         self._file_regex = "*." + file_type
+        self._glob_path = os.path.join(self._directory, self._file_regex)
         self._output_filename = output_filename
 
     def parse(self):
@@ -63,15 +65,31 @@ class GoogleFitReader:
             self._parse_xml()
 
     def _parse_json(self):
-        pass
+        for filepath in glob.iglob(self._glob_path): 
+            print("filepath: ", filepath)
+            with open(filepath) as in_file:
+                activity = json.load(in_file)
+            activity_name = activity.get('fitnessActivity')
+            timestamp = activity.get('startTime')
+            total_time_seconds = float(activity.get('duration').replace('s', ''))
+            total_time_minutes = total_time_minutes = total_time_seconds / 60.0
+            aggregate = activity.get('aggregate')
+            for element in aggregate:
+                if element.get('metricName') == 'com.google.distance.delta':
+                    distance_meters = element.get('floatValue')
+                    distance_miles = distance_meters / 1609.0
+            print('timestamp: ', timestamp)
+            print('activity: ', activity_name)
+            print('distance in miles: ', distance_miles)
+            print('total time in minutes: ', total_time_minutes)
+            print('-----')
+            sys.exit()
     
     def _parse_xml(self):
         # for filename in os.listdir(self._directory):
         #     print('filename: ', filename)
 
-        glob_path = os.path.join(self._directory, self._file_regex)
-        print(glob_path)
-        for filepath in glob.iglob(glob_path): 
+        for filepath in glob.iglob(self._glob_path): 
             print("filepath: ", filepath)
             tree = ET.parse(filepath)
             # print('tree: ', tree)
@@ -88,16 +106,19 @@ class GoogleFitReader:
             # print(ET.dump(root))
             for activities in root.iter(namespace + 'Activities'):
                 for activity in activities.iter(namespace + 'Activity'):
-                    timestamp = activity.find(namespace + 'Id')
+                    activity_name = activity.attrib.get('Sport')
+                    timestamp = activity.find(namespace + 'Id').text
                     lap = activity.find(namespace + 'Lap')
                     distance_meters = float(lap.find(namespace + 'DistanceMeters').text)
                     distance_miles = distance_meters / 1609.0
                     total_time_seconds = float(lap.find(namespace + 'TotalTimeSeconds').text)
                     total_time_minutes = total_time_seconds / 60.0
                     print('timestamp: ', timestamp)
+                    print('activity: ', activity_name)
                     print('distance in miles: ', distance_miles)
                     print('total time in minutes: ', total_time_minutes)
                     print('-----')
+                    sys.exit()
         
 
     def _get_namespace(self, element):
